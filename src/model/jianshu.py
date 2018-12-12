@@ -1,5 +1,6 @@
 # coding=utf-8
-
+import sys
+import getopt
 import requests
 from bs4 import BeautifulSoup
 import json
@@ -20,11 +21,17 @@ headers = {
 
 
 def get_post(url=None, post_slug=None):
+    """
+    获取单篇文章数据
+    :param url: 文章 url
+    :param post_slug: 文章 slug
+    :return: 文章信息
+    """
     # 设置文章 url
     if url is None:
         if post_slug is None:
             # TODO 返回值
-            return 1
+            sys.exit(2)
         else:
             url = jianshu_post_url + post_slug
     # 获取网页源码
@@ -90,13 +97,58 @@ def get_post(url=None, post_slug=None):
     # 修复 html2text 错误换行
     # TODO 这里需要优化, 只针对 a 标签和图片标签换行即可
     markdown = markdown.replace('-\n', '-')
+    # 添加文章内容
+    post_message['content'] = markdown
 
-    print("============== 文章信息 ==============")
-    print(post_message)
+    return post_message
 
-    print("============== 文章内容 ==============")
-    print(markdown)
+
+def cli_arguments(argv):
+    """
+    处理命令行参数
+    :param argv: 命令行参数
+    :return: None
+    """
+    # 解析参数列表
+    try:
+        opts, args = getopt.getopt(argv, "h", ["post-url=", 'post-slug='])
+    except getopt.GetoptError as e:
+        print(e.msg)
+        sys.exit(2)
+
+    for opt, arg in opts:
+        if opt == '-h':
+            show_help()
+            sys.exit()
+        elif opt == '--post-url':
+            post = get_post(url=arg)
+            print(post)
+            sys.exit()
+        elif opt == '--post-slug':
+            post = get_post(post_slug=arg)
+            print(post)
+            sys.exit()
+        else:
+            print('Wrong arguments')
+            sys.exit()
+
+
+def show_help():
+    """
+    显示帮助信息
+    :return: None
+    """
+    help_message = '''
+    抓取简书文章/专题/文集/作者信息
+    参数介绍: 
+        - h     显示帮助信息
+        -- post-url     文章链接
+                            此参数与 post-slug 二选一即可
+        -- post-slug    文章标识
+                            此参数与 post-url 二选一即可
+    '''
+    print(help_message)
 
 
 if __name__ == "__main__":
-    get_post(post_slug='4e59453b602b')
+    cli_arguments(sys.argv[1:])
