@@ -111,7 +111,7 @@ def cli_arguments(argv):
     """
     # 解析参数列表
     try:
-        opts, args = getopt.getopt(argv, "h", ["post-url=", 'post-slug='])
+        opts, args = getopt.getopt(argv, "h", ["post-url=", "post-slug=", "output="])
     except getopt.GetoptError as e:
         print(e.msg)
         sys.exit(2)
@@ -141,11 +141,13 @@ def show_help():
     help_message = '''
     抓取简书文章/专题/文集/作者信息
     参数介绍: 
-        - h     显示帮助信息
-        -- post-url     文章链接
+        -h     显示帮助信息
+        --post-url      文章链接
                             此参数与 post-slug 二选一即可
-        -- post-slug    文章标识
+        --post-slug     文章标识
                             此参数与 post-url 二选一即可
+        --output        指定输出路径
+                            默认为当前目录
     '''
     print(help_message)
 
