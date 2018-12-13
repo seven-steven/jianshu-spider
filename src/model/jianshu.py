@@ -15,6 +15,8 @@ jianshu_root_url = "https://www.jianshu.com/"
 jianshu_post_url = jianshu_root_url + "p/"
 # 简书专题页
 jianshu_collection_url = jianshu_root_url + "c/"
+# 简书用户主页
+jianshu_user_url = jianshu_root_url + "u/"
 # 请求头信息
 headers = {
     "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
@@ -28,13 +30,89 @@ headers = {
 # 是否打印抓取详情
 verbose = False
 
+#
+# def get_user(url=None, user_slug=None, page=None):
+#     # 处理参数
+#     if url is None:
+#         if user_slug is None:
+#             print("参数错误")
+#             sys.exit()
+#         else:
+#             url = jianshu_user_url + user_slug
+#     # 获取网页内容
+#     html = requests.get(url, headers=headers)
+#     soup = BeautifulSoup(html.text, 'lxml')
+#
+#     # 记录用户信息
+#     message = dict()
+#     # 用户名
+#     message['user_name'] = soup.select("a.name")[0].text
+#     # 用户 slug
+#     message['user_slug'] = soup.select("a.name")[0].get('href')[3:]
+#     # 获取 info 信息
+#     divs = soup.select('div.info ul li div.meta-block')
+#     for i in divs:
+#         if i.text.find("关注") >= 0:
+#             # 关注数量
+#             message['follow_count'] = i.select('p')[0].text
+#         elif i.text.find("粉丝") >= 0:
+#             # 粉丝数量
+#             message['fans_count'] = i.select('p')[0].text
+#         elif i.text.find("文章") >= 0:
+#             # 文章数量
+#             message['post_count'] = i.select('p')[0].text
+#         elif i.text.find("字数") >= 0:
+#             # 字数统计
+#             message['word_count'] = i.select('p')[0].text
+#         elif i.text.find("收获喜欢") >= 0:
+#             # 收获喜欢
+#             message['be_like_count'] = i.select('p')[0].text
+#         else:
+#             pass
+#     # 个人简介
+#     message['bio'] = soup.select('div.js-intro')[0].text
+#     # TODO 他关注的专题/文集/连载 url: https://www.jianshu.com/users/54df556b30dd/subscriptions
+#     # TODO 他喜欢的文章 url: https://www.jianshu.com/users/54df556b30dd/liked_notes
+#
+#     # 他的文集
+#     # TODO notebooks 可能有多页, 这里只获取了第一页
+#     collection_and_notebooks_url = jianshu_root_url + "/users/" + message['user_slug'] + "/collections_and_notebooks" \
+#                                                                                          "?slug=" + message['user_slug']
+#     headers['accept'] = 'application/json'
+#     collection_and_notebooks_json = requests.get(collection_and_notebooks_url, headers=headers).text
+#     collection_and_notebooks_dict = json.loads(collection_and_notebooks_json)
+#     # TODO 获取专题列表
+#     # 获取文集id
+#     notebooks = collection_and_notebooks_dict.get('notebooks')
+#     notebooks_id_list = list()
+#     for i in notebooks:
+#         notebooks_id_list.append(i.get('id'))
+#     message['notebooks_id_list'] = notebooks_id_list
+#
+#     # 获取文章列表
+#     # TODO 获取动态排序文章列表
+#     # TODO 最新评论排序
+#     # TODO 热门排序
+#     # 获取按照发布时间排序的文章列表
+#     post_url = jianshu_user_url + message['user_slug'] + "?order_by=shared_at&page=" + page
+#
+#     # print(message)
+
 
 def get_collection(url=None, collection_slug=None, page=None):
+    """
+    获取单个专题内容
+    :param url: 专题 url
+    :param collection_slug: 专题 slug
+    :param page: 指定页码
+    :return: 专题信息
+    """
     # 处理 url
     if url is None:
         if collection_slug is None:
             # TODO 返回值
-            sys.exit(2)
+            print("参数错误")
+            sys.exit()
         else:
             url = jianshu_collection_url + collection_slug
 
@@ -93,41 +171,12 @@ def get_collection(url=None, collection_slug=None, page=None):
     # TODO 获取作者信息
     # TODO 获取订阅者信息 url = https://www.jianshu.com/collection/25/subscribers?max_sort_id=183941854
 
-    # 计算文章页码
+    # 每页文章数量
     # 每页文章数量 TODO 可以写进配置文件
     page_per = 10
-    post_number = int(message['post_number'])
-    total_page = post_number // page_per
-    if post_number % page_per != 0:
-        total_page += 1
-    # 专题文章总页码
-    message['total_page'] = total_page
-
-    # 默认只获取第一页文章
-    page_from = 1
-    page_to = 1
-    # 处理 page 参数
-    page_arg = dict()
-    if page is not None:
-        if type(page).__name__ == 'int':
-            if page == 0:
-                # 下载所有页码
-                page_to = total_page
-            else:
-                # 下载指定页码
-                page_from = page
-                page_to = page
-            page_arg['aim'] = page
-        elif type(page).__name__ == 'str':
-            if page[: page.index(":")] == "":
-                page_from = 1
-            else:
-                page_from = int(page[: page.index(":")])
-
-            if page[page.index(":") + 1 :] == "":
-                page_to = total_page
-            else:
-                page_to = int(page[page.index(":") + 1 :])
+    # 文章总数
+    total = int(message['post_number'])
+    page_from, page_to = page_parse(page, page_per, total)
 
     # 修改请求头信息
     headers['accept'] = 'text/html, */*; q=0.01'
@@ -147,7 +196,6 @@ def get_collection(url=None, collection_slug=None, page=None):
     # 专题文章 slug 列表
     message['post_slug_list'] = post_slug_list
 
-    # [print(message[key]) for key in message]
     return message
 
 
@@ -162,7 +210,8 @@ def get_post(url=None, post_slug=None):
     if url is None:
         if post_slug is None:
             # TODO 返回值
-            sys.exit(2)
+            print("参数错误")
+            sys.exit()
         else:
             url = jianshu_post_url + post_slug
     # 获取网页源码
@@ -234,6 +283,75 @@ def get_post(url=None, post_slug=None):
     return post_message
 
 
+def write_post(post, output='./'):
+    """
+    将单篇文章写入文件
+    :param post: 文章数据
+    :param output: 输出目录
+    :return: None
+    """
+    post_content = post.pop('content')
+    # TODO output 容错
+    # 检查文件夹是否存在
+    if not os.path.exists(output):
+        os.mkdir(output)
+    # 定义文件名
+    file_path = output + "/" + post['title'] + ".md"
+    print(file_path)
+    with open(file_path, "w") as f:
+        f.write("---\n")
+        # 写入文章元数据
+        [f.write(i + ":\t" + str(post.get(i)) + "\n") for i in post]
+        f.write("\n---\n")
+        # 写入文章内容
+        f.write(post_content)
+
+
+def page_parse(page, page_per, total):
+    """
+    解析 page 参数
+    :param page: page 参数
+    :param page_per: 每页元素数量
+    :param total: 元素总数
+    :return: page 范围
+    """
+    # 计算文章页码
+    post_number = total
+    total_page = post_number // page_per
+    if post_number % page_per != 0:
+        total_page += 1
+
+    # 默认只获取第一页文章
+    page_from = 1
+    page_to = 1
+    # 处理 page 参数
+    if page is not None:
+        if type(page).__name__ == 'int':
+            if page == 0:
+                # 下载所有页码
+                page_to = total_page
+            else:
+                # 下载指定页码
+                page_from = page
+                page_to = page
+        elif type(page).__name__ == 'str':
+            if page[: page.index(":")] == "":
+                page_from = 1
+            else:
+                page_from = int(page[: page.index(":")])
+
+            if page[page.index(":") + 1:] == "":
+                page_to = total_page
+            else:
+                page_to = int(page[page.index(":") + 1:])
+
+    # 容错
+    page_from = 1 if page_from < 1 else page_from
+    page_to = total_page if page_to > total_page else page_to
+
+    return page_from, page_to
+
+
 def cli_arguments(argv):
     """
     处理命令行参数
@@ -247,7 +365,9 @@ def cli_arguments(argv):
                                                 "output=",
                                                 "collection-url=",
                                                 "collection-slug=",
-                                                "page="
+                                                "page=",
+                                                "user-slug=",
+                                                "user-url"
                                                 ])
     except getopt.GetoptError as e:
         print(e.msg)
@@ -264,6 +384,8 @@ def cli_arguments(argv):
     collection_slug = None
     page = None
     output = "./"
+    user_slug = None
+    user_url = None
 
     # TODO 处理文件输出
     for opt, arg in opts:
@@ -290,6 +412,12 @@ def cli_arguments(argv):
             page = arg
         elif opt == '--output':
             output = arg
+        elif opt == '--user-slug':
+            process = "user"
+            user_slug = arg
+        elif opt == '--user-url':
+            process = "user"
+            user_url = arg
         else:
             print('Wrong arguments')
             sys.exit()
@@ -301,10 +429,12 @@ def cli_arguments(argv):
         print("执行完毕")
     elif process == "collection":
         collection = get_collection(collection_url, collection_slug, page)
-        output += collection.get('title')
+        output += "/" + collection.get('title')
         for i in collection.get('post_slug_list'):
             write_post(get_post(post_slug=i), output)
         print("执行完毕")
+    elif process == "user":
+        get_user(user_url, user_slug)
     else:
         print("未知流程")
         sys.exit()
@@ -325,41 +455,23 @@ def show_help():
                             此参数与 post-slug 二选一即可
         --post-slug     文章标识
                             此参数与 post-url 二选一即可
+        --user-url      用户主页连接
+                            此参数与 user-slug 二选一即可
+        --user-slug     用户标识
+                            此参数与 user-url 二选一即可
         --collection-url    专题链接
                                 此参数与 collection-slug 二选一即可
         --collection-slug   专题标识
                                 此参数与 collection-url 二选一即可
         --page          指定抓取页码
+                            不指定 page 参数时, 默认只抓取第一页内容
                             0 表示抓取全部
                             n 表示抓取第 n 页
                             n:m 表示抓取第 n 页到第 m 页
         --output        指定输出目录
-                            默认为当前目录
+                            不指定 output 参数时, 默认为当前目录
     '''
     print(help_message)
-
-
-def write_post(post, output='./'):
-    """
-    将单篇文章写入文件
-    :param post: 文章数据
-    :param output: 输出目录
-    :return: None
-    """
-    post_content = post.pop('content')
-    # TODO output 容错
-    # 检查文件夹是否存在
-    if not os.path.exists(output):
-        os.mkdir(output)
-    # 定义文件名
-    file_path = output + "/" + post['title'] + ".md"
-    with open(file_path, "w") as f:
-        f.write("---\n")
-        # 写入文章元数据
-        [f.write(i + ":\t" + str(post.get(i)) + "\n") for i in post]
-        f.write("\n---\n")
-        # 写入文章内容
-        f.write(post_content)
 
 
 if __name__ == "__main__":
