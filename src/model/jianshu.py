@@ -1,4 +1,5 @@
 # coding=utf-8
+import re
 import sys
 import getopt
 import requests
@@ -9,6 +10,7 @@ import html2text
 # 简书主页
 jianshu_root_url = "https://www.jianshu.com/"
 jianshu_post_url = jianshu_root_url + "p/"
+jianshu_collection_url = jianshu_root_url + "c/"
 headers = {
     "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
     "accept-encoding": "gzip, deflate, br",
@@ -18,6 +20,74 @@ headers = {
                   "Safari/537.36",
     "if-none-match": 'W/"3c609bd0d55b942904fe20ef67d7a61f"'
 }
+
+
+def get_collection(url=None, collection_slug=None):
+    # 处理 url
+    if url is None:
+        if collection_slug is None:
+            # TODO 返回值
+            sys.exit(2)
+        else:
+            url = jianshu_collection_url + collection_slug
+
+    # 获取网页源码
+    html = requests.get(url=url, headers=headers)
+    # TODO 对于非 post 的容错处理
+    # 使用 BeautifulSoup 解析网页
+    soup = BeautifulSoup(html.text, 'html.parser')
+
+    # 提取网页 json 信息
+    json_message = soup.findAll('script', attrs={"data-name": "collection", "type": "application/json"})
+    json_message = json.loads(json_message[0].text)
+    # 记录专题信息
+    message = {}
+    # 专题 id
+    message['id'] = json_message['id']
+    # 专题 slug
+    message['slug'] = json_message['slug']
+    # 专题作者 id
+    message['owner_id'] = json_message['owner']['id']
+    # 关注人数
+    message['subscribers_count'] = json_message['subscribers_count']
+    # 专题简介
+    message['content'] = html2text.html2text(json_message['content'])
+    # 专题名称
+    message['title'] = soup.select('.name')[0].text
+    # 收录文章数量
+    info = soup.select('.info')[0].text
+    message['post_number'] = re.findall("收录了(\d*)篇文章", info)[0]
+    # 获取管理员信息
+    page = 1
+
+    # 初始化 headers, 当前页码, 总页码
+    headers['accept'] = 'application/json'
+    page = 1
+    total_page = 1
+    administrator_slug_list = []
+    # 循环获取管理员信息
+    while page <= total_page:
+        # 拼接当前页码 url
+        administrator_url = jianshu_root_url + 'collections/' + str(message['id']) + '/editors?page=' + str(page)
+        # 获取当前页作者 json 数据
+        json_data = requests.get(administrator_url, headers=headers).text
+        # 解码 json 数据
+        json_dict = json.loads(json_data)
+        # 获取总页数
+        total_page = json_dict['total_pages']
+
+        for i in json_dict['editors']:
+            administrator_slug_list.append(i['slug'])
+
+        page += 1
+
+    # 管理员列表
+    message['administrator_slug_list'] = administrator_slug_list
+    [print(message[key]) for key in message]
+
+    # 订阅者 url = https://www.jianshu.com/collection/25/subscribers?max_sort_id=183941854
+    # 文章列表
+    # 推荐作者
 
 
 def get_post(url=None, post_slug=None):
@@ -36,9 +106,9 @@ def get_post(url=None, post_slug=None):
             url = jianshu_post_url + post_slug
     # 获取网页源码
     html = requests.get(url=url, headers=headers)
+    # TODO 对于非 post 的容错处理
     # 使用 BeautifulSoup 解析网页
     soup = BeautifulSoup(html.text, 'lxml')
-    # soup = BeautifulSoup(open('post.html'), 'lxml')
 
     # 记录文章信息
     post_message = {}
@@ -82,8 +152,8 @@ def get_post(url=None, post_slug=None):
     # 文章内容
     content = soup.select('.show-content')[0]
     # 提取图片并获取真实链接
-    imgs = content.findAll('img')
-    for img in imgs:
+    images = content.findAll('img')
+    for img in images:
         # 先删除可能存在的 src 属性
         img['src'] = "https:" + img['data-original-src']
 
@@ -116,6 +186,10 @@ def cli_arguments(argv):
         print(e.msg)
         sys.exit(2)
 
+    # TODO 解析 args 参数, 比如自动判断 url 类型
+    # for arg in args:
+        
+    # TODO 处理文件输出
     for opt, arg in opts:
         if opt == '-h':
             show_help()
@@ -154,3 +228,4 @@ def show_help():
 
 if __name__ == "__main__":
     cli_arguments(sys.argv[1:])
+    # get_collection(collection_slug='Df7njb')
