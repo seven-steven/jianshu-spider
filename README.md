@@ -1,8 +1,9 @@
 ### 进度
 
-    方便统一概念, 这个是自己对简书架构的理解分析: [简书架构解析](https://mubu.com/doc/btsI4SKpAH)
-    目前已完成单一文章内容抓取, 指定专题文章抓取, 指定用户文章抓取
-    
+方便统一概念, 这个是自己对简书架构的理解分析:  [简书架构解析](https://mubu.com/doc/btsI4SKpAH) 
+
+目前已完成单一文章内容抓取, 指定专题文章抓取, 指定用户文章抓取
+
 ### 简介
 
     python 脚本, 用于抓取简书文章/专题/文集/作者信息
@@ -27,7 +28,7 @@
 
 ### 依赖
 
-    依赖 requests, re, sys, getopt, requests, bs4, json, html2text
+依赖 requests, re, sys, getopt, requests, bs4, json, html2text
 
 
 ### 举例
@@ -57,7 +58,7 @@
         ```shell
         python jianshu.py --post-slug 5bd14cbf7186 --output /home/seven/Downloads/
         ```
-        
+    
 * 抓取用户文章
 
     * 通过 url 抓取:
@@ -73,7 +74,7 @@
         ```
     
     * 指定文章保存目录
-        
+      
         ```shell
         python jianshu.py --user-slug 474f4a8db16f --output /usr/seven/Downloads/
         ```
