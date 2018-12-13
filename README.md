@@ -51,6 +51,33 @@
         ```shell
         python jianshu.py --post-slug 5bd14cbf7186 --output /home/seven/Downloads/
         ```
+        
+* 抓取用户文章
+
+    * 通过 url 抓取:
+    
+        ```shell
+        python jianshu.py --user-url https://www.jianshu.com/u/474f4a8db16f
+        ```
+    
+    * 通过 slug 抓取:
+    
+        ```shell
+        python jianshu.py --user-slug 474f4a8db16f
+        ```
+    
+    * 指定文章保存目录
+        
+        ```shell
+        python jianshu.py --user-slug 474f4a8db16f --output /usr/seven/Downloads/
+        ```
+    
+    * 指定页码
+    
+        ```shell
+        # 抓取用户第 1 页 到第 3 页文章内容
+        python jianshu.py --user-slug 474f4a8db16f --page 1:3
+        ```
 
 * 抓取专题
 
