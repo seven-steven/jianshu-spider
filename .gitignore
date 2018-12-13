@@ -1,5 +1,4 @@
-.idea/vcs.xml
-.idea/workspace.xml
+.idea/
 src/model/content.html
 src/model/content.md
 src/model/post.md
