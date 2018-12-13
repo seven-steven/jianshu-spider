@@ -1,6 +1,4 @@
 .idea/
-src/model/content.html
-src/model/content.md
-src/model/post.md
-src/model/test.py
+src/
+venv/
 
