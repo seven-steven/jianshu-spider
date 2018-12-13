@@ -30,74 +30,99 @@ headers = {
 # 是否打印抓取详情
 verbose = False
 
-#
-# def get_user(url=None, user_slug=None, page=None):
-#     # 处理参数
-#     if url is None:
-#         if user_slug is None:
-#             print("参数错误")
-#             sys.exit()
-#         else:
-#             url = jianshu_user_url + user_slug
-#     # 获取网页内容
-#     html = requests.get(url, headers=headers)
-#     soup = BeautifulSoup(html.text, 'lxml')
-#
-#     # 记录用户信息
-#     message = dict()
-#     # 用户名
-#     message['user_name'] = soup.select("a.name")[0].text
-#     # 用户 slug
-#     message['user_slug'] = soup.select("a.name")[0].get('href')[3:]
-#     # 获取 info 信息
-#     divs = soup.select('div.info ul li div.meta-block')
-#     for i in divs:
-#         if i.text.find("关注") >= 0:
-#             # 关注数量
-#             message['follow_count'] = i.select('p')[0].text
-#         elif i.text.find("粉丝") >= 0:
-#             # 粉丝数量
-#             message['fans_count'] = i.select('p')[0].text
-#         elif i.text.find("文章") >= 0:
-#             # 文章数量
-#             message['post_count'] = i.select('p')[0].text
-#         elif i.text.find("字数") >= 0:
-#             # 字数统计
-#             message['word_count'] = i.select('p')[0].text
-#         elif i.text.find("收获喜欢") >= 0:
-#             # 收获喜欢
-#             message['be_like_count'] = i.select('p')[0].text
-#         else:
-#             pass
-#     # 个人简介
-#     message['bio'] = soup.select('div.js-intro')[0].text
-#     # TODO 他关注的专题/文集/连载 url: https://www.jianshu.com/users/54df556b30dd/subscriptions
-#     # TODO 他喜欢的文章 url: https://www.jianshu.com/users/54df556b30dd/liked_notes
-#
-#     # 他的文集
-#     # TODO notebooks 可能有多页, 这里只获取了第一页
-#     collection_and_notebooks_url = jianshu_root_url + "/users/" + message['user_slug'] + "/collections_and_notebooks" \
-#                                                                                          "?slug=" + message['user_slug']
-#     headers['accept'] = 'application/json'
-#     collection_and_notebooks_json = requests.get(collection_and_notebooks_url, headers=headers).text
-#     collection_and_notebooks_dict = json.loads(collection_and_notebooks_json)
-#     # TODO 获取专题列表
-#     # 获取文集id
-#     notebooks = collection_and_notebooks_dict.get('notebooks')
-#     notebooks_id_list = list()
-#     for i in notebooks:
-#         notebooks_id_list.append(i.get('id'))
-#     message['notebooks_id_list'] = notebooks_id_list
-#
-#     # 获取文章列表
-#     # TODO 获取动态排序文章列表
-#     # TODO 最新评论排序
-#     # TODO 热门排序
-#     # 获取按照发布时间排序的文章列表
-#     post_url = jianshu_user_url + message['user_slug'] + "?order_by=shared_at&page=" + page
-#
-#     # print(message)
 
+def get_user(url=None, user_slug=None, page=None):
+    """
+    获取用户信息
+    :param url: 用户主页 url
+    :param user_slug: 用户标识
+    :param page: 页码范围
+    :return: 用户信息
+    """
+    # 处理参数
+    if url is None:
+        if user_slug is None:
+            print("参数错误")
+            sys.exit()
+        else:
+            url = jianshu_user_url + user_slug
+    # 获取网页内容
+    html = requests.get(url, headers=headers)
+    soup = BeautifulSoup(html.text, 'lxml')
+
+    # 记录用户信息
+    message = dict()
+    # 用户名
+    message['user_name'] = soup.select("a.name")[0].text
+    # 用户 slug
+    message['user_slug'] = soup.select("a.name")[0].get('href')[3:]
+    # 获取 info 信息
+    divs = soup.select('div.info ul li div.meta-block')
+    for i in divs:
+        if i.text.find("关注") >= 0:
+            # 关注数量
+            message['follow_count'] = i.select('p')[0].text
+        elif i.text.find("粉丝") >= 0:
+            # 粉丝数量
+            message['fans_count'] = i.select('p')[0].text
+        elif i.text.find("文章") >= 0:
+            # 文章数量
+            message['post_count'] = i.select('p')[0].text
+        elif i.text.find("字数") >= 0:
+            # 字数统计
+            message['word_count'] = i.select('p')[0].text
+        elif i.text.find("收获喜欢") >= 0:
+            # 收获喜欢
+            message['be_like_count'] = i.select('p')[0].text
+        else:
+            pass
+    # 个人简介
+    message['bio'] = soup.select('div.js-intro')[0].text
+    # TODO 他关注的专题/文集/连载 url: https://www.jianshu.com/users/54df556b30dd/subscriptions
+    # TODO 他喜欢的文章 url: https://www.jianshu.com/users/54df556b30dd/liked_notes
+
+    # 他的文集
+    # TODO notebooks 可能有多页, 这里只获取了第一页
+    collection_and_notebooks_url = jianshu_root_url + "/users/" + message['user_slug'] + "/collections_and_notebooks" \
+                                                                                         "?slug=" + message['user_slug']
+    headers['accept'] = 'application/json'
+    collection_and_notebooks_json = requests.get(collection_and_notebooks_url, headers=headers).text
+    collection_and_notebooks_dict = json.loads(collection_and_notebooks_json)
+    # TODO 获取专题列表
+    # 获取文集id
+    notebooks = collection_and_notebooks_dict.get('notebooks')
+    notebooks_id_list = list()
+    for i in notebooks:
+        notebooks_id_list.append(i.get('id'))
+    message['notebooks_id_list'] = notebooks_id_list
+
+    # 获取文章列表
+    # TODO 获取动态排序文章列表
+    # TODO 最新评论排序
+    # TODO 热门排序
+    # 获取按照发布时间排序的文章列表
+    # 每页文章数量 TODO 可以写进配置文件
+    page_per = 9
+    # 总文章数
+    total = int(message['post_count'])
+    # 获取页码范围
+    page_from, page_to = page_parse(page, page_per, total)
+    # 修改请求头信息
+    headers['accept'] = 'text/html, */*; q=0.01'
+    headers['x-infinitescroll'] = "true"
+    headers['x-requested-with'] = "XMLHttpRequest"
+    note_slug_list = list()
+    for i in range(page_from, page_to + 1):
+        post_url = jianshu_user_url + message['user_slug'] + "?order_by=shared_at&page=" + str(i)
+        post_html = requests.get(post_url, headers=headers)
+        post_soup = BeautifulSoup(post_html.text, 'lxml')
+        note_slugs_html = post_soup.select("a.title")
+
+        for a in note_slugs_html:
+            note_slug_list.append(a.get('href')[3:])
+    message['note_slug_list'] = note_slug_list
+
+    return message
 
 def get_collection(url=None, collection_slug=None, page=None):
     """
@@ -315,6 +340,7 @@ def page_parse(page, page_per, total):
     :param total: 元素总数
     :return: page 范围
     """
+
     # 计算文章页码
     post_number = total
     total_page = post_number // page_per
@@ -326,7 +352,9 @@ def page_parse(page, page_per, total):
     page_to = 1
     # 处理 page 参数
     if page is not None:
-        if type(page).__name__ == 'int':
+        page = str(page)
+        if page.isdigit():
+            page = int(page)
             if page == 0:
                 # 下载所有页码
                 page_to = total_page
@@ -334,7 +362,8 @@ def page_parse(page, page_per, total):
                 # 下载指定页码
                 page_from = page
                 page_to = page
-        elif type(page).__name__ == 'str':
+        else:
+            page = str(page)
             if page[: page.index(":")] == "":
                 page_from = 1
             else:
@@ -348,6 +377,9 @@ def page_parse(page, page_per, total):
     # 容错
     page_from = 1 if page_from < 1 else page_from
     page_to = total_page if page_to > total_page else page_to
+    if page_from > page_to:
+        page_from = 1
+        page_to = 1
 
     return page_from, page_to
 
@@ -434,7 +466,11 @@ def cli_arguments(argv):
             write_post(get_post(post_slug=i), output)
         print("执行完毕")
     elif process == "user":
-        get_user(user_url, user_slug)
+        user = get_user(user_url, user_slug, page)
+        output += "/" + user.get("user_name")
+        for i in user.get('note_slug_list'):
+            write_post(get_post(post_slug=i), output)
+        print("执行完毕")
     else:
         print("未知流程")
         sys.exit()
