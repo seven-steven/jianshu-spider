@@ -53,7 +53,7 @@ def get_user(url=None, user_slug=None, page=None):
         else:
             url = config.jianshu_user_url + user_slug
     # 获取网页内容
-    html = requests.get(url, headers=config.headers)
+    html = requests_get(url, headers=config.headers)
     soup = BeautifulSoup(html.text, 'lxml')
 
     # 记录用户信息
@@ -98,7 +98,7 @@ def get_user(url=None, user_slug=None, page=None):
 
     headers = config.headers
     headers['accept'] = 'application/json'
-    collection_and_notebooks_json = requests.get(collection_and_notebooks_url, headers=headers).text
+    collection_and_notebooks_json = requests_get(collection_and_notebooks_url, headers=headers).text
     collection_and_notebooks_dict = json.loads(collection_and_notebooks_json)
     # TODO 获取专题列表
     # 获取文集id
@@ -126,7 +126,7 @@ def get_user(url=None, user_slug=None, page=None):
     note_slug_list = list()
     for i in range(page_from, page_to + 1):
         post_url = config.jianshu_user_url + message['user_slug'] + "?order_by=shared_at&page=" + str(i)
-        post_html = requests.get(post_url, headers=headers)
+        post_html = requests_get(post_url, headers=headers)
         post_soup = BeautifulSoup(post_html.text, 'lxml')
         note_slugs_html = post_soup.select("a.title")
 
@@ -156,7 +156,7 @@ def get_collection(url=None, collection_slug=None, page=None):
 
     headers = config.headers
     # 获取网页源码
-    html = requests.get(url=url, headers=headers)
+    html = requests_get(url=url, headers=headers)
     # TODO 对于非 post 的容错处理
     # 使用 BeautifulSoup 解析网页
     soup = BeautifulSoup(html.text, 'lxml')
@@ -193,7 +193,7 @@ def get_collection(url=None, collection_slug=None, page=None):
         administrator_url = config.jianshu_root_url + 'collections/' + str(message['id']) + '/editors?page=' + \
                             str(administrator_page)
         # 获取当前页作者 json 数据
-        json_data = requests.get(administrator_url, headers=headers).text
+        json_data = requests_get(administrator_url, headers=headers).text
         # 解码 json 数据
         json_dict = json.loads(json_data)
         # 获取总页数
@@ -225,7 +225,7 @@ def get_collection(url=None, collection_slug=None, page=None):
     post_slug_list = list()
     for i in range(page_from, page_to + 1):
         note_list_url = 'https://www.jianshu.com/c/' + message['slug'] + '?order_by=added_at&page=' + str(i)
-        note_list_html = requests.get(note_list_url, headers=headers)
+        note_list_html = requests_get(note_list_url, headers=headers)
         note_list_soup = BeautifulSoup(note_list_html.text, 'lxml')
         note_list = note_list_soup.select('a.title')
         for note in note_list:
@@ -254,7 +254,7 @@ def get_post(url=None, post_slug=None):
         else:
             url = config.jianshu_post_url + post_slug
     # 获取网页源码
-    html = requests.get(url=url, headers=config.headers)
+    html = requests_get(url=url, headers=config.headers)
     # TODO 对于非 post 的容错处理
     # 使用 BeautifulSoup 解析网页
     soup = BeautifulSoup(html.text, 'lxml')
