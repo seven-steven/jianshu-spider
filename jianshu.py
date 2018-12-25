@@ -27,6 +27,8 @@ def requests_get(url, params=None, headers=None, match_text=None):
     # 如果请求状态异常, 结束程序
     if not req.ok:
         print("网页状态异常!")
+        print(url)
+        print(headers)
         sys.exit()
 
     if match_text is not None:
@@ -35,6 +37,99 @@ def requests_get(url, params=None, headers=None, match_text=None):
             sys.exit()
 
     return req
+
+
+def get_notebook(notebook_url=None, notebook_slug=None, page=None):
+    """
+    获取文集 / 连载信息
+    :param notebook_url: 文集 / 连载 url
+    :param notebook_slug: 文集 / 连载标识
+    :param page: 指定页码
+    :return: 文集信息
+    """
+    # 处理参数
+    if notebook_url is None:
+        if notebook_slug is None:
+            print("参数错误")
+            sys.exit()
+        else:
+            url = config.jianshu_notebook_url + notebook_slug
+    # 获取网页内容
+    headers = config.headers.copy()
+    html = requests_get(url, headers=headers)
+    soup = BeautifulSoup(html.text, 'lxml')
+
+    # 记录文集信息
+    message = dict()
+    message['notebook_slug'] = notebook_slug
+
+    # 提取文集标题
+    title = soup.select('div .title a')[0].text
+    message['title'] = title
+    info = soup.select('div.info')[0].text
+    info = re.findall("(\d*)字.*?(\d.*)阅读.*?(\d*)人关注", info)
+    # 字数统计
+    word_count = info[0][0]
+    message['word_count'] = word_count
+    # 阅读数统计
+    read_count = info[0][1]
+    message['read_count'] = read_count
+    # 关注数统计
+    follow_count = info[0][2]
+    message['follow_count'] = follow_count
+    # 获取作者信息
+    author = soup.select('ul.list.collection-editor li a.name')[0]
+    # 获取作者昵称
+    author_name = author.text
+    message['author_name'] = author_name
+    # 获取作者 slug
+    author_slug = author.get('href')[3:]
+    message['author_slug'] = author_slug
+    # 获取连载介绍
+    summary = soup.select('div.summary')[0]
+    # 移除无用数据
+    summary.find('div').extract()
+    summary = summary.text.strip()
+    message['summary'] = summary
+    # 获取文集id
+    notebook_id = soup.find('div', attrs={'data-vcomp': 'book-chapters'}).get('props-data-book-id')
+    message['notebook_id'] = notebook_id
+
+    # 修改请求头信息
+    headers['accept'] = 'application/json'
+
+    page_url = (
+            config.jianshu_root_url + 'books/' +
+            str(message['notebook_id']) +
+            '/chapters?page=1&count=10&order=desc'
+    )
+
+    # 获取连载总数
+    page_data = requests_get(page_url, headers=headers).text
+    page_json = json.loads(page_data)
+    total = page_json.get('total_count')
+    message['post_total_count'] = total
+
+    # 每页文章数量
+    page_per = config.post_per_page
+    # 页码范围
+    page_from, page_to = page_parse(page, page_per, total)
+    # 获取文章列表
+    post_list = list()
+    for page in range(page_from, page_to + 1):
+        page_url = (
+                config.jianshu_root_url + 'books/' + \
+                str(message['notebook_id']) + '/chapters?page=' + str(page) + '&count=10&order=desc'
+        )
+        page_data = requests_get(page_url, headers=headers).text
+        page_json = json.loads(page_data)
+        # 获取文章 slug
+        for post in page_json.get('chapters'):
+            post_list.append(post.get('slug'))
+
+    message['post_slug_list'] = post_list
+
+    return message
 
 
 def get_user(url=None, user_slug=None, page=None):
@@ -53,7 +148,8 @@ def get_user(url=None, user_slug=None, page=None):
         else:
             url = config.jianshu_user_url + user_slug
     # 获取网页内容
-    html = requests_get(url, headers=config.headers)
+    headers = config.headers.copy()
+    html = requests_get(url, headers=headers)
     soup = BeautifulSoup(html.text, 'lxml')
 
     # 记录用户信息
@@ -94,9 +190,8 @@ def get_user(url=None, user_slug=None, page=None):
             "/users/" + message['user_slug'] +
             "/collections_and_notebooks?slug=" +
             message['user_slug']
-            )
+    )
 
-    headers = config.headers
     headers['accept'] = 'application/json'
     collection_and_notebooks_json = requests_get(collection_and_notebooks_url, headers=headers).text
     collection_and_notebooks_dict = json.loads(collection_and_notebooks_json)
@@ -154,7 +249,7 @@ def get_collection(url=None, collection_slug=None, page=None):
         else:
             url = config.jianshu_collection_url + collection_slug
 
-    headers = config.headers
+    headers = config.headers.copy()
     # 获取网页源码
     html = requests_get(url=url, headers=headers)
     # TODO 对于非 post 的容错处理
@@ -254,7 +349,8 @@ def get_post(url=None, post_slug=None):
         else:
             url = config.jianshu_post_url + post_slug
     # 获取网页源码
-    html = requests_get(url=url, headers=config.headers)
+    headers = config.headers.copy()
+    html = requests_get(url=url, headers=headers)
     # TODO 对于非 post 的容错处理
     # 使用 BeautifulSoup 解析网页
     soup = BeautifulSoup(html.text, 'lxml')
@@ -413,7 +509,9 @@ def cli_arguments(argv):
                                                 "collection-slug=",
                                                 "page=",
                                                 "user-slug=",
-                                                "user-url"
+                                                "user-url=",
+                                                "notebook-slug=",
+                                                "notebook-url="
                                                 ])
     except getopt.GetoptError as e:
         print(e.msg)
@@ -432,6 +530,8 @@ def cli_arguments(argv):
     output = "./"
     user_slug = None
     user_url = None
+    notebook_slug = None
+    notebook_url = None
 
     # TODO 处理文件输出
     for opt, arg in opts:
@@ -464,6 +564,12 @@ def cli_arguments(argv):
         elif opt == '--user-url':
             process = "user"
             user_url = arg
+        elif opt == '--notebook-slug':
+            process = 'notebook'
+            notebook_slug = arg
+        elif opt == '--notebook-url':
+            process = 'notebook'
+            notebook_url = arg
         else:
             print('Wrong arguments')
             sys.exit()
@@ -472,22 +578,26 @@ def cli_arguments(argv):
     if process == "post":
         post = get_post(post_url, post_slug)
         write_post(post, output)
-        print("执行完毕")
     elif process == "collection":
         collection = get_collection(collection_url, collection_slug, page)
         output += "/" + collection.get('title')
         for i in collection.get('post_slug_list'):
             write_post(get_post(post_slug=i), output)
-        print("执行完毕")
     elif process == "user":
         user = get_user(user_url, user_slug, page)
         output += "/" + user.get("user_name")
         for i in user.get('note_slug_list'):
             write_post(get_post(post_slug=i), output)
-        print("执行完毕")
+    elif process == 'notebook':
+        notebook = get_notebook(notebook_url, notebook_slug, page)
+        output += "/" + notebook.get('title')
+        for i in notebook.get('post_slug_list'):
+            write_post(get_post(post_slug=i), output)
     else:
         print("未知流程")
         sys.exit()
+
+    print("执行完毕")
 
 
 def show_help():
@@ -513,6 +623,10 @@ def show_help():
                                 此参数与 collection-slug 二选一即可
         --collection-slug   专题标识
                                 此参数与 collection-url 二选一即可
+        --notebook-url      文集/连载链接
+                                此参数与 notebook-url 二选一即可
+        --notebook-slug     文集/连载标识
+                                此参数与 notebook-url 二选一即可
         --page              指定抓取页码
                                 不指定 page 参数时, 默认只抓取第一页内容
                                 0 表示抓取全部
