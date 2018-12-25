@@ -8,27 +8,33 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import html2text
+import config
 
-# 简书主页
-jianshu_root_url = "https://www.jianshu.com/"
-# 简书文章页
-jianshu_post_url = jianshu_root_url + "p/"
-# 简书专题页
-jianshu_collection_url = jianshu_root_url + "c/"
-# 简书用户主页
-jianshu_user_url = jianshu_root_url + "u/"
-# 请求头信息
-headers = {
-    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-    "accept-encoding": "gzip, deflate, br",
-    "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
-    "cache-control": "max-age=0",
-    "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.80 "
-                  "Safari/537.36",
-    "if-none-match": 'W/"3c609bd0d55b942904fe20ef67d7a61f"'
-}
 # 是否打印抓取详情
 verbose = False
+
+
+def requests_get(url, params=None, headers=None, match_text=None):
+    """
+    代理 requests 的 get 方法, 对返回值作判断
+    :param url: 请求的 url
+    :param params: 请求参数
+    :param headers: 请求头
+    :param match_text: 自定义页面匹配信息, 用于判断页面内容是否是自己想要的内容
+    :return: 请求信息
+    """
+    req = requests.get(url, params, headers=headers)
+    # 如果请求状态异常, 结束程序
+    if not req.ok:
+        print("网页状态异常!")
+        sys.exit()
+
+    if match_text is not None:
+        if req.text.find() < 0:
+            print("页面不匹配")
+            sys.exit()
+
+    return req
 
 
 def get_user(url=None, user_slug=None, page=None):
@@ -45,9 +51,9 @@ def get_user(url=None, user_slug=None, page=None):
             print("参数错误")
             sys.exit()
         else:
-            url = jianshu_user_url + user_slug
+            url = config.jianshu_user_url + user_slug
     # 获取网页内容
-    html = requests.get(url, headers=headers)
+    html = requests.get(url, headers=config.headers)
     soup = BeautifulSoup(html.text, 'lxml')
 
     # 记录用户信息
@@ -83,8 +89,14 @@ def get_user(url=None, user_slug=None, page=None):
 
     # 他的文集
     # TODO notebooks 可能有多页, 这里只获取了第一页
-    collection_and_notebooks_url = jianshu_root_url + "/users/" + message['user_slug'] + "/collections_and_notebooks" \
-                                                                                         "?slug=" + message['user_slug']
+    collection_and_notebooks_url = (
+            config.jianshu_root_url +
+            "/users/" + message['user_slug'] +
+            "/collections_and_notebooks?slug=" +
+            message['user_slug']
+            )
+
+    headers = config.headers
     headers['accept'] = 'application/json'
     collection_and_notebooks_json = requests.get(collection_and_notebooks_url, headers=headers).text
     collection_and_notebooks_dict = json.loads(collection_and_notebooks_json)
@@ -113,7 +125,7 @@ def get_user(url=None, user_slug=None, page=None):
     headers['x-requested-with'] = "XMLHttpRequest"
     note_slug_list = list()
     for i in range(page_from, page_to + 1):
-        post_url = jianshu_user_url + message['user_slug'] + "?order_by=shared_at&page=" + str(i)
+        post_url = config.jianshu_user_url + message['user_slug'] + "?order_by=shared_at&page=" + str(i)
         post_html = requests.get(post_url, headers=headers)
         post_soup = BeautifulSoup(post_html.text, 'lxml')
         note_slugs_html = post_soup.select("a.title")
@@ -123,6 +135,7 @@ def get_user(url=None, user_slug=None, page=None):
     message['note_slug_list'] = note_slug_list
 
     return message
+
 
 def get_collection(url=None, collection_slug=None, page=None):
     """
@@ -139,8 +152,9 @@ def get_collection(url=None, collection_slug=None, page=None):
             print("参数错误")
             sys.exit()
         else:
-            url = jianshu_collection_url + collection_slug
+            url = config.jianshu_collection_url + collection_slug
 
+    headers = config.headers
     # 获取网页源码
     html = requests.get(url=url, headers=headers)
     # TODO 对于非 post 的容错处理
@@ -176,7 +190,7 @@ def get_collection(url=None, collection_slug=None, page=None):
     # 循环获取管理员信息
     while administrator_page <= total_page:
         # 拼接当前页码 url
-        administrator_url = jianshu_root_url + 'collections/' + str(message['id']) + '/editors?page=' + \
+        administrator_url = config.jianshu_root_url + 'collections/' + str(message['id']) + '/editors?page=' + \
                             str(administrator_page)
         # 获取当前页作者 json 数据
         json_data = requests.get(administrator_url, headers=headers).text
@@ -238,9 +252,9 @@ def get_post(url=None, post_slug=None):
             print("参数错误")
             sys.exit()
         else:
-            url = jianshu_post_url + post_slug
+            url = config.jianshu_post_url + post_slug
     # 获取网页源码
-    html = requests.get(url=url, headers=headers)
+    html = requests.get(url=url, headers=config.headers)
     # TODO 对于非 post 的容错处理
     # 使用 BeautifulSoup 解析网页
     soup = BeautifulSoup(html.text, 'lxml')
