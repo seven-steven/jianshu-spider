@@ -192,10 +192,62 @@
     * 指定文章保存路径
     
         * 抓取文集 / 连载特定页码文章
+
             ```shell
             # 抓取文集第二页所有文章
             python jianshu.py --notebook-slug 12010430 --page 2 --output /home/seven/Downloads
             ```
 
-* 抓取一周热门
-* 抓取一月热门
+* 抓取 "7 日热门"
+    
+    * 默认只抓取第一页 20 篇文章
+        
+        ```shell
+        python jianshu.py --weekly
+        ```
+        
+    * 抓取特定页码文章
+    
+        ```shell
+        # 指定抓取第二页文章
+        python jianshu.py --weekly --page 2
+        ```
+        
+    * 抓取范围页码文章
+    
+        ```shell
+        python jianshu.py --weekly --page 3:6
+        ```
+
+    * 指定文章保存路径
+    
+        ```shell
+        python jianshu.py --weekly --output ~/Downloads
+        ```    
+    
+* 抓取 "30 日热门"
+        
+    * 默认只抓取第一页 20 篇文章
+        
+        ```shell
+        python jianshu.py --monthly
+        ```
+        
+    * 抓取特定页码文章
+    
+        ```shell
+        # 指定抓取第二页文章
+        python jianshu.py --monthly --page 2
+        ```
+        
+    * 抓取范围页码文章
+    
+        ```shell
+        python jianshu.py --monthly --page 3:6
+        ```
+        
+    * 指定文章保存路径
+    
+        ```shell
+        python jianshu.py --monthly --output ~/Downloads
+        ```    
