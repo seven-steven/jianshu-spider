@@ -492,7 +492,6 @@ def write_post(post, output='./'):
         return
     
     post_content = post.pop('content')
-    # TODO output 容错
     # 检查文件夹是否存在
     if not os.path.exists(output):
         os.mkdir(output)
@@ -606,7 +605,6 @@ def cli_arguments(argv):
     notebook_url = None
     trending_type = None
 
-    # TODO 处理文件输出
     for opt, arg in opts:
         if opt == '-v':
             global verbose
