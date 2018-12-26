@@ -155,3 +155,47 @@
         python jianshu.py --collection-slug e048f1a72e3d --page 1 --output /home/seven/Downloads
         ```
 
+* 抓取文集 / 连载
+
+    * 通过 url 抓取文集 / 连载
+    
+        ```shell
+        python jianshu.py --notebook-url https://www.jianshu.com/nb/12010430
+        ```
+    
+    * 通过 slug 抓取文集 / 连载
+    
+        ```shell
+        python jianshu.py --notebook-slug 12010430
+        ```
+    
+    * 抓取特定页码的文集 / 连载
+    
+        ```shell
+        python jianshu.py --notebook-slug 12010430 --output /home/seven/Downloads
+        ```
+
+    * 抓取范围页码的文集 / 连载
+    
+        * 抓取文集 / 连载全部文章
+        
+            ```shell
+            python jianshu.py --notebook-slug 12010430 --page 0 --output /home/seven/Downloads
+            ```
+
+        * 抓取文集 / 连载第 2 - 5 页全部文章
+        
+            ```shell
+            python jianshu.py --notebook-slug 12010430 --page 2:5 --output /home/seven/Downloads
+            ```
+        
+    * 指定文章保存路径
+    
+        * 抓取文集 / 连载特定页码文章
+            ```shell
+            # 抓取文集第二页所有文章
+            python jianshu.py --notebook-slug 12010430 --page 2 --output /home/seven/Downloads
+            ```
+
+* 抓取一周热门
+* 抓取一月热门
