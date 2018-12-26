@@ -39,6 +39,53 @@ def requests_get(url, params=None, headers=None, match_text=None):
     return req
 
 
+def get_trending(trending_type=None):
+    """
+    获取热门文章
+    :param trending_type: 热门类型, 包括 7 日热门和 30 日热门
+    :return: 热门信息
+    """
+    # 处理参数
+    if trending_type is None:
+        print("参数错误")
+        sys.exit()
+
+    # 记录热门信息
+    message = dict()
+    # 热门标题
+    message['title'] = config.trending_weekly_title if trending_type == config.trending_type_weekly \
+        else config.trending_monthly_title
+
+    # 定义 url
+    url = config.jianshu_trending_url + '/' + trending_type
+    # 获取 header
+    headers = config.headers.copy()
+
+    post_slug_list = list()
+    # 初始化参数
+    data = {"page": 1, "seen_snote_ids[]": []}
+    seen_note_ids = data.get('seen_snote_ids[]')
+    while True:
+        next_page = len(seen_note_ids) // config.trending_post_per_page + 1
+        data['page'] = next_page
+
+        # 获取页面
+        html = requests_get(url, params=data, headers=headers).text
+        soup = BeautifulSoup(html, 'lxml')
+        list_li = soup.select("ul.note-list li")
+
+        for i in list_li:
+            seen_note_ids.append(i.get('data-note-id'))
+            post_slug_list.append(i.select('a.title')[0].get('href')[3:])
+
+        if len(list_li) < config.post_per_page:
+            break
+
+    # 记录文章列表信息
+    message['post_slug_list'] = post_slug_list
+    return message
+
+
 def get_notebook(notebook_url=None, notebook_slug=None, page=None):
     """
     获取文集 / 连载信息
@@ -511,7 +558,9 @@ def cli_arguments(argv):
                                                 "user-slug=",
                                                 "user-url=",
                                                 "notebook-slug=",
-                                                "notebook-url="
+                                                "notebook-url=",
+                                                "weekly",
+                                                "monthly"
                                                 ])
     except getopt.GetoptError as e:
         print(e.msg)
@@ -532,6 +581,7 @@ def cli_arguments(argv):
     user_url = None
     notebook_slug = None
     notebook_url = None
+    trending_type = None
 
     # TODO 处理文件输出
     for opt, arg in opts:
@@ -570,6 +620,10 @@ def cli_arguments(argv):
         elif opt == '--notebook-url':
             process = 'notebook'
             notebook_url = arg
+        elif opt in ('--weekly', '--monthly'):
+            # 热门
+            process = 'trending'
+            trending_type = opt[2:]
         else:
             print('Wrong arguments')
             sys.exit()
@@ -593,6 +647,12 @@ def cli_arguments(argv):
         output += "/" + notebook.get('title')
         for i in notebook.get('post_slug_list'):
             write_post(get_post(post_slug=i), output)
+    elif process == 'trending':
+        trending = get_trending(trending_type)
+        output += "/" + trending.get('title')
+        for i in trending.get('post_slug_list'):
+            write_post(get_post(post_slug=i), output)
+        # TODO
     else:
         print("未知流程")
         sys.exit()
@@ -627,6 +687,8 @@ def show_help():
                                 此参数与 notebook-url 二选一即可
         --notebook-slug     文集/连载标识
                                 此参数与 notebook-url 二选一即可
+        --weekly            一周热门, 无需参数值
+        --monthly           一月热门, 无序参数值
         --page              指定抓取页码
                                 不指定 page 参数时, 默认只抓取第一页内容
                                 0 表示抓取全部

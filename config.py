@@ -8,6 +8,9 @@ jianshu_collection_url = jianshu_root_url + "c/"
 jianshu_user_url = jianshu_root_url + "u/"
 # 简书文集/连载页面
 jianshu_notebook_url = jianshu_root_url + "nb/"
+# 简书热门页面
+jianshu_trending_url = jianshu_root_url + "trending/"
+
 # 请求头信息
 headers = {
     "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
@@ -21,3 +24,11 @@ headers = {
 
 # 每页文章数量
 post_per_page = 10
+
+# 热门配置
+trending_type_weekly = "weekly"
+trending_monthly_type = "monthly"
+trending_weekly_title = "7 日热门"
+trending_monthly_title = "30 日热门"
+# 每页文章数量
+trending_post_per_page = 20
