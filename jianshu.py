@@ -74,7 +74,7 @@ def get_trending(trending_type=None, page=None):
                                     config.trending_post_max_page * config.trending_post_per_page)
     # 获取文章列表
     next_page = 1
-    while next_page < config.trending_post_max_page:
+    while next_page < page_to:
         next_page = len(seen_note_ids) // config.trending_post_per_page + 1
         data['page'] = next_page
 
@@ -87,8 +87,6 @@ def get_trending(trending_type=None, page=None):
             # 只记录目标页码
             if page_from <= next_page:
                 post_slug_list.append(i.select('a.title')[0].get('href')[3:])
-            elif next_page > page_to:
-                break
 
         # 页面获取完毕, 跳出循环
         if len(list_li) < config.trending_post_per_page:
