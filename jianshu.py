@@ -266,8 +266,7 @@ def get_user(url=None, user_slug=None, page=None):
     # TODO 最新评论排序
     # TODO 热门排序
     # 获取按照发布时间排序的文章列表
-    # 每页文章数量 TODO 可以写进配置文件
-    page_per = 9
+    page_per = config.post_per_page
     # 总文章数
     total = int(message['post_count'])
     # 获取页码范围
@@ -364,8 +363,7 @@ def get_collection(url=None, collection_slug=None, page=None):
     # TODO 获取订阅者信息 url = https://www.jianshu.com/collection/25/subscribers?max_sort_id=183941854
 
     # 每页文章数量
-    # 每页文章数量 TODO 可以写进配置文件
-    page_per = 10
+    page_per = config.post_per_page
     # 文章总数
     total = int(message['post_number'])
     page_from, page_to = page_parse(page, page_per, total)
