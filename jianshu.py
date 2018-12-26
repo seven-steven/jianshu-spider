@@ -12,6 +12,8 @@ import config
 
 # 是否打印抓取详情
 verbose = False
+# 下载文章数量
+download_count = 0
 
 
 def requests_get(url, params=None, headers=None, match_text=None):
@@ -27,8 +29,11 @@ def requests_get(url, params=None, headers=None, match_text=None):
     # 如果请求状态异常, 结束程序
     if not req.ok:
         print("网页状态异常!")
-        print(url)
-        print(headers)
+        print('url:\t', url)
+        print('status-code:\t', req)
+        print('headers:\t', headers)
+        print('params:\t', params)
+        print(req.text)
         sys.exit()
 
     if match_text is not None:
@@ -39,7 +44,7 @@ def requests_get(url, params=None, headers=None, match_text=None):
     return req
 
 
-def get_trending(trending_type=None):
+def get_trending(trending_type=None, page=None):
     """
     获取热门文章
     :param trending_type: 热门类型, 包括 7 日热门和 30 日热门
@@ -57,15 +62,19 @@ def get_trending(trending_type=None):
         else config.trending_monthly_title
 
     # 定义 url
-    url = config.jianshu_trending_url + '/' + trending_type
+    url = config.jianshu_trending_url + trending_type
     # 获取 header
     headers = config.headers.copy()
 
     post_slug_list = list()
     # 初始化参数
-    data = {"page": 1, "seen_snote_ids[]": []}
+    data = {"page": 1, "seen_snote_ids[]": set()}
     seen_note_ids = data.get('seen_snote_ids[]')
-    while True:
+    page_from, page_to = page_parse(page, config.trending_post_per_page,
+                                    config.trending_post_max_page * config.trending_post_per_page)
+    # 获取文章列表
+    next_page = 1
+    while next_page < config.trending_post_max_page:
         next_page = len(seen_note_ids) // config.trending_post_per_page + 1
         data['page'] = next_page
 
@@ -73,12 +82,16 @@ def get_trending(trending_type=None):
         html = requests_get(url, params=data, headers=headers).text
         soup = BeautifulSoup(html, 'lxml')
         list_li = soup.select("ul.note-list li")
-
         for i in list_li:
-            seen_note_ids.append(i.get('data-note-id'))
-            post_slug_list.append(i.select('a.title')[0].get('href')[3:])
+            seen_note_ids.add(str(i.get('data-note-id')))
+            # 只记录目标页码
+            if page_from <= next_page:
+                post_slug_list.append(i.select('a.title')[0].get('href')[3:])
+            elif next_page > page_to:
+                break
 
-        if len(list_li) < config.post_per_page:
+        # 页面获取完毕, 跳出循环
+        if len(list_li) < config.trending_post_per_page:
             break
 
     # 记录文章列表信息
@@ -405,7 +418,12 @@ def get_post(url=None, post_slug=None):
     # 记录文章信息
     post_message = {}
     # 获取文章标题
-    title = soup.select('.article h1')[0].text
+    try:
+        title = soup.select('.article h1')[0].text
+    except IndexError as e:
+        # 文章异常, 一般是正在审核中
+        return
+
     # 获取作者 id
     author_slug = soup.select('.name a')[0].get('href')[3:]
     # 获取最后编辑时间
@@ -447,7 +465,8 @@ def get_post(url=None, post_slug=None):
     images = content.findAll('img')
     for img in images:
         # 先删除可能存在的 src 属性
-        img['src'] = "https:" + img['data-original-src']
+        if img.get('data-original-src') is not None:
+            img['src'] = "https:" + img['data-original-src']
 
     # 获取并删除图题
     # TODO 可以尝试把图题转换为 alt 文本
@@ -472,14 +491,22 @@ def write_post(post, output='./'):
     :param output: 输出目录
     :return: None
     """
+    # 容错
+    if post is None:
+        return
+    
     post_content = post.pop('content')
     # TODO output 容错
     # 检查文件夹是否存在
     if not os.path.exists(output):
         os.mkdir(output)
     # 定义文件名
-    file_path = output + "/" + post['title'] + ".md"
-    print(file_path)
+    file_path = output + "/" + post['title'].replace('/', '-') + ".md"
+    # 计数
+    global download_count
+    download_count += 1
+    print(download_count, '\t--->\t', file_path)
+    # 写入
     with open(file_path, "w") as f:
         f.write("---\n")
         # 写入文章元数据
@@ -648,11 +675,10 @@ def cli_arguments(argv):
         for i in notebook.get('post_slug_list'):
             write_post(get_post(post_slug=i), output)
     elif process == 'trending':
-        trending = get_trending(trending_type)
+        trending = get_trending(trending_type, page)
         output += "/" + trending.get('title')
         for i in trending.get('post_slug_list'):
             write_post(get_post(post_slug=i), output)
-        # TODO
     else:
         print("未知流程")
         sys.exit()

@@ -13,13 +13,11 @@ jianshu_trending_url = jianshu_root_url + "trending/"
 
 # 请求头信息
 headers = {
-    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-    "accept-encoding": "gzip, deflate, br",
-    "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
-    # "cache-control": "max-age=0",
+    # "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+    # "accept-encoding": "gzip, deflate, br",
+    # "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
     "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.80 "
                   "Safari/537.36",
-    # "if-none-match": 'W/"3c609bd0d55b942904fe20ef67d7a61f"'
 }
 
 # 每页文章数量
@@ -32,3 +30,5 @@ trending_weekly_title = "7 日热门"
 trending_monthly_title = "30 日热门"
 # 每页文章数量
 trending_post_per_page = 20
+# 最大页码数量
+trending_post_max_page = 18
